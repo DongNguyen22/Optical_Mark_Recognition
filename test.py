@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import support2020 as sp
 import solveImg as si
+import MDD as mdd
 path = r'C:\review_OMR\images\2020.jpg'
 widthImg = 1000
 heightImg = 1400
