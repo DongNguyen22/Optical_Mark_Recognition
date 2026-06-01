@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import support2020 as sp20
 import support2025 as sp25
+import supportVACT as spVACT
 import solveImg as si
 
 def readMDD_2020(img):
@@ -126,4 +127,80 @@ def readMDD_2025(img):
     cv2.putText(img, f"{examID}", (md_x1, y1 - 8),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
 
+    return img, studentID, examID
+
+def readMDD_DGNL(img):
+    img = cv2.resize(img, (1000, 1400))
+    imgGray   = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    imgBlur   = cv2.GaussianBlur(imgGray, (5, 5), 1)
+    imgThresh = cv2.threshold(imgBlur, 135, 255, cv2.THRESH_BINARY_INV)[1]
+    imgCanny  = cv2.Canny(imgBlur, 50, 150)
+    contours, _ = cv2.findContours(imgCanny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+ 
+    # Tìm 2 corner marker phía dưới của khối SBD/Mã đề (~27×27px, area 600–800)
+    # bot_left ≈ (630, 449)  |  bot_right ≈ (824, 449)
+    bot_left  = None
+    bot_right = None
+    seen = set()
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if not (600 <= area <= 800):
+            continue
+        peri   = cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, 0.04 * peri, True)
+        if len(approx) != 4:
+            continue
+        x, y, w, h = cv2.boundingRect(cnt)
+        key = (x // 3 * 3, y // 3 * 3)
+        if key in seen:
+            continue
+        seen.add(key)
+        if 618 <= x <= 648 and 437 <= y <= 467 and bot_left is None:
+            bot_left  = (x, y)
+        if 812 <= x <= 842 and 437 <= y <= 467 and bot_right is None:
+            bot_right = (x, y)
+ 
+    if bot_left and bot_right:
+        marker = 27
+
+        # SBD (6 cột)
+        sbd_x1 = bot_left[0] + marker
+        sbd_x2 = sbd_x1 + 155      # ~ 6 cột
+
+        # Mã đề (3 cột)
+        md_x1 = bot_right[0] + marker
+        md_x2 = md_x1 + 78         # ~ 3 cột
+
+        y1 = bot_left[1] - 250
+        y2 = bot_left[1]
+    else:
+        # fallback
+        sbd_x1, sbd_x2 = 657, 812
+        md_x1, md_x2   = 853, 931
+        y1, y2         = 200, 449
+ 
+    imgSBD       = imgThresh[y1:y2, sbd_x1:sbd_x2]
+    imgSBD_clone = img[y1:y2, sbd_x1:sbd_x2].copy()
+    imgMD        = imgThresh[y1:y2, md_x1:md_x2]
+    imgMD_clone  = img[y1:y2, md_x1:md_x2].copy()
+ 
+    ans_SBD     = spVACT.splitAnsPart3([imgSBD], 10, 6)  
+    pixel_SBD   = spVACT.countPixelPartCol(ans_SBD[0], 10, 6)
+    myIndex_SBD = spVACT.countIndex(pixel_SBD, 6)
+ 
+    ans_MD     = spVACT.splitAnsPart3([imgMD], 10, 3)    
+    pixel_MD   = spVACT.countPixelPartCol(ans_MD[0], 10, 3)
+    myIndex_MD = spVACT.countIndex(pixel_MD, 3)
+ 
+    img[y1:y2, sbd_x1:sbd_x2] = spVACT.showMDD_MD(imgSBD_clone, myIndex_SBD, 6, 10)
+    img[y1:y2, md_x1:md_x2]   = spVACT.showMDD_MD(imgMD_clone,  myIndex_MD,  3, 10)
+ 
+    studentID = spVACT.convertMDD_MD(myIndex_SBD)
+    examID    = spVACT.convertMDD_MD(myIndex_MD)
+ 
+    cv2.putText(img, f"{studentID}", (sbd_x1, y1 - 8),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+    cv2.putText(img, f"{examID}", (md_x1, y1 - 8),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+ 
     return img, studentID, examID

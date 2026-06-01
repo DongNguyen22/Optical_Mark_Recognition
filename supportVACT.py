@@ -104,4 +104,54 @@ def countPixel(ans,rows,cols):
             countR =0
     return pixel
 
+def splitAnsPart3(boxes, rows, cols):
+    ans = []
+    for image in boxes:
+        h, w = image.shape[:2]
+        piece_w = w // cols
+        piece_h = h // rows
+        part = []
+        for x in range(cols):
+            for y in range(rows):
+                x_start = x * piece_w
+                x_end   = x_start + piece_w
+                y_start = y * piece_h
+                y_end   = y_start + piece_h
+                part.append(image[y_start:y_end, x_start:x_end])
+        ans.append(part)
+    return ans
 
+def countPixelPartCol(ans, rows, cols):
+    pixel = np.zeros((cols, rows))
+    countR, countC = 0, 0
+    for img in ans:
+        pixel[countC][countR] = cv2.countNonZero(img)
+        countR += 1
+        if countR == rows:
+            countC += 1
+            countR = 0
+    return pixel
+
+def countIndex(pixelValues, questions):
+    myIndex = []
+    for i in range(questions):
+        marked = np.where(pixelValues[i] >= 70)[0]
+        if   len(marked) == 0: myIndex.append(-1)
+        elif len(marked) == 1: myIndex.append(int(marked[0]))
+        else:                  myIndex.append(-2)
+    return myIndex
+
+def showMDD_MD(img, index, questions, choices):
+    h, w = img.shape[:2]
+    sec_w = w // questions
+    sec_h = h // choices
+    radius = min(sec_w, sec_h) // 3
+    for x in range(questions):
+        if index[x] >= 0:
+            cX = sec_w * x + sec_w // 2
+            cY = sec_h * index[x] + sec_h // 2
+            cv2.circle(img, [cX, cY], radius, (0, 255, 0), cv2.FILLED, lineType=cv2.LINE_AA)
+    return img
+
+def convertMDD_MD(arr):
+    return ''.join('x' if x < 0 else str(x) for x in arr)
