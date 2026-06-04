@@ -542,7 +542,9 @@ def build_excel_result(sv_df: pd.DataFrame, results: list) -> bytes:
             ws.column_dimensions[get_column_letter(ci)].width = min(max(len(v) for v in vals)+4, 40)
 
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
-
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
 def build_pdf_result(sv_df, results, loai_label) -> bytes:
     if not PDF_OK: return b""
     buf  = io.BytesIO()
@@ -555,7 +557,33 @@ def build_pdf_result(sv_df, results, loai_label) -> bytes:
     S    = ParagraphStyle("S", parent=stys["Normal"], fontSize=9,
                            textColor=colors.HexColor("#64748b"), alignment=1, spaceAfter=10)
     N    = ParagraphStyle("N", parent=stys["Normal"], fontSize=8.5, leading=11)
+    # ------------------ Đăng ký font tiếng Việt ------------------
+    font_path = "NotoSans-Regular.ttf"   # đặt đúng tên file font của bạn
+    if os.path.exists(font_path):
+        pdfmetrics.registerFont(TTFont('VietnameseFont', font_path))
+        pdfmetrics.registerFontFamily('VietnameseFont', normal='VietnameseFont')
+        font_name = 'VietnameseFont'
+    else:
+        # fallback nếu không tìm thấy font
+        font_name = 'Helvetica'
+        st.warning("⚠️ Không tìm thấy file font 'NotoSans-Regular.ttf', xuất PDF có thể lỗi font tiếng Việt.")
+    # ------------------------------------------------------------
 
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=28, rightMargin=28,
+                            topMargin=36, bottomMargin=28)
+    stys = getSampleStyleSheet()
+    
+    # Tạo các style với font đã đăng ký
+    T = ParagraphStyle("T", parent=stys["Heading1"], fontSize=14,
+                       textColor=colors.HexColor("#1e3a5f"), alignment=1, spaceAfter=4,
+                       fontName=font_name)
+    S = ParagraphStyle("S", parent=stys["Normal"], fontSize=9,
+                       textColor=colors.HexColor("#64748b"), alignment=1, spaceAfter=10,
+                       fontName=font_name)
+    N = ParagraphStyle("N", parent=stys["Normal"], fontSize=8.5, leading=11,
+                       fontName=font_name)
     sv_cols  = list(sv_df.columns) if (sv_df is not None and len(sv_df)) else ["Số báo danh"]
     all_cols = sv_cols + ["Mã đề", "Điểm", "Ghi chú"]
     scores   = [float(r.get("diem", 0)) for r in results]
