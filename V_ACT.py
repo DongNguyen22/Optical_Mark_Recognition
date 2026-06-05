@@ -84,4 +84,4 @@ def Omr_vact(img,ans):
         rawBoxes[x] = sp.showAnswer(rawBoxes[x], stackIndex, stackAns, stackGrading, 12, 4)
     imgRawFinal = sp.restoreImg(imgPer,rawBoxes,stack)
     imgAns[per_y1:per_y2,per_x1:per_x2] = imgRawFinal
-    return imgAns,score
+    return imgAns,score, myIndex

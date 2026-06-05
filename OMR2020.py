@@ -129,4 +129,4 @@ def Omr_2020(img,ans):
     #cv2.imshow('inv', imgInvWarp)
 
     imgFinal = cv2.addWeighted(imgFinal, 1, imgInvWarp, 1, 0)
-    return imgFinal,score
+    return imgFinal,score, myIndex

@@ -320,134 +320,38 @@ def run_mdd(img_np, loai):
     return readMDD_DGNL(img_np)
 
 def run_omr(img_np, loai, ans):
-    """→ (img_graded, score, my_index)
-    my_index:
-      - 2020/dgnl : list[int] độ dài = len(ans), mỗi phần tử 0-3 | -1 bỏ | -2 tô nhiều
-      - 2025      : (list40, list8×list4, list6) — giữ nguyên cấu trúc 3 phần
-    """
+
     if not OMR_OK:
-        raise RuntimeError(f"OMR chưa load: {_omr_err}")
+        raise RuntimeError(
+            "OMR modules failed to load. Check project files."
+        )
 
-    import support2020 as sp20
-    import support2025 as sp25
-    import supportVACT as spVACT
+    loai = loai.lower()
 
-    if loai in ("2020", "dgnl"):
-        img_graded, score = (Omr_2020 if loai=="2020" else Omr_vact)(img_np, ans)
-        # Tính lại myIndex từ ảnh threshold (giống logic bên trong OMR)
-        sp = sp20 if loai == "2020" else spVACT
-        try:
-            import solveImg as si
-            widthImg, heightImg = 1000, 1400
-            questions = len(ans)
-            img_r = cv2.resize(img_np, (widthImg, heightImg))
-            imgGray = cv2.cvtColor(img_r, cv2.COLOR_BGR2GRAY)
-            imgBlur = cv2.GaussianBlur(imgGray, (5,5), 1)
-            imgCanny = cv2.Canny(imgBlur, 50, 150)
-            retr = cv2.RETR_EXTERNAL if loai=="2020" else cv2.RETR_TREE
-            contours, _ = cv2.findContours(imgCanny, retr, cv2.CHAIN_APPROX_NONE)
-            contours = sp.rectContour(contours)
+    if loai == "2020":
+        img_graded, score, my_index = Omr_2020(
+            img_np.copy(),
+            ans
+        )
 
-            if loai == "2020":
-                _, ptC = si.takeImageAnswer(img_r.copy(), contours,
-                                            [50,150,900,1000],[380,450,1250,1300])
-                pt1 = np.float32([ptC[0],ptC[1],ptC[2],ptC[3]])
-                pt2 = np.float32([[0,0],[widthImg,0],[0,heightImg],[widthImg,heightImg]])
-                mx  = cv2.getPerspectiveTransform(pt1, pt2)
-                imgAns = cv2.warpPerspective(img_r, mx, (widthImg, heightImg))
-                per_x1,per_x2,per_y1,per_y2 = 8,982,72,1375
-                imgPer = imgAns[per_y1:per_y2, per_x1:per_x2]
-                imgThresh = cv2.threshold(
-                    cv2.cvtColor(imgPer, cv2.COLOR_BGR2GRAY),
-                    135, 255, cv2.THRESH_BINARY_INV)[1]
-                boxes = sp20.splitImg(imgThresh)
-                ans_cells = sp20.splitAns(boxes, 5, 4)
-                pixelVals = np.zeros((questions, 4))
-                for qi in range(questions):
-                    for ci in range(4):
-                        pixelVals[qi][ci] = cv2.countNonZero(ans_cells[qi*4+ci])
-            else:  # vact
-                _, ptC = si.takeImageAnswer(img_r.copy(), contours,
-                                            [60,100,800,850],[550,650,1200,1300])
-                per_x1 = int(ptC[0][0]) - 12
-                per_y1 = int(ptC[0][1]) + 26
-                per_x2 = 965
-                per_y2 = int(ptC[2][1])
-                imgPer  = img_r[per_y1:per_y2, per_x1:per_x2]
-                imgThresh = cv2.threshold(
-                    cv2.cvtColor(imgPer, cv2.COLOR_BGR2GRAY),
-                    135, 255, cv2.THRESH_BINARY_INV)[1]
-                boxes = spVACT.splitImg(imgThresh)
-                ans_cells = spVACT.splitAns(boxes, 12, 4)
-                pixelVals = np.zeros((questions, 4))
-                for qi in range(questions):
-                    for ci in range(4):
-                        pixelVals[qi][ci] = cv2.countNonZero(ans_cells[qi*4+ci])
+    elif loai == "2025":
+        img_graded, score, my_index = Omr_2025(
+            img_np.copy(),
+            ans
+        )
 
-            my_index = []
-            for qi in range(questions):
-                valid = np.where(pixelVals[qi] > 200)[0]
-                if   len(valid) == 0: my_index.append(-1)
-                elif len(valid) > 1:  my_index.append(-2)
-                else:                 my_index.append(int(valid[0]))
-        except Exception:
-            my_index = None   # fallback nếu tính lại lỗi
+    elif loai in ["dgnl", "vact"]:
+        img_graded, score, my_index = Omr_vact(
+            img_np.copy(),
+            ans
+        )
 
-        return img_graded, score, my_index
+    else:
+        raise ValueError(
+            f"Loại phiếu không hỗ trợ: {loai}"
+        )
 
-    else:  # 2025
-        img_graded, score = Omr_2025(img_np, ans)
-        try:
-            import support2025 as sp25
-            import solveImg as si
-            widthImg, heightImg = 1000, 1400
-            img_r    = cv2.resize(img_np, (widthImg, heightImg))
-            imgGray  = cv2.cvtColor(img_r, cv2.COLOR_BGR2GRAY)
-            imgBlur  = cv2.GaussianBlur(imgGray, (5,5), 1)
-            imgThresh= cv2.threshold(imgBlur, 135, 255, cv2.THRESH_BINARY_INV)[1]
-            imgCanny = cv2.Canny(imgBlur, 50, 150)
-            contours, _ = cv2.findContours(imgCanny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            contours = sp25.rectContour(contours)
-            _, ptC1 = si.takeImageAnswer(img_r.copy(), contours, [50,150,930,970],[400,450,700,750])
-            _, ptC2 = si.takeImageAnswer(img_r.copy(), contours, [50,150,930,970],[680,720,860,900])
-            _, ptC3 = si.takeImageAnswer(img_r.copy(), contours, [50,110,930,970],[860,920,1250,1300])
-            # Part 1: 40 cau
-            p1_x1=int(ptC1[0][0]); p1_y1=int(ptC1[0][1])+51
-            p1_x2=int(ptC1[3][0]); p1_y2=int(ptC1[3][1])-17
-            imgP1=imgThresh[p1_y1:p1_y2,p1_x1:p1_x2]
-            boxes1=sp25.splitImg(imgP1,1,4)
-            ans1=sp25.splitAns(boxes1,10,4)
-            pix1=sp25.countPixelPartRows(ans1,40,4)
-            myIndex_1=sp25.countIndex(pix1,40)
-            # Part 2: 8 cau x 4 y
-            p2_x1=int(ptC2[0][0]); p2_y1=int(ptC2[0][1])+70
-            p2_x2=int(ptC2[3][0]); p2_y2=int(ptC2[3][1])-10
-            imgP2=imgThresh[p2_y1:p2_y2,p2_x1:p2_x2]
-            kkk=sp25.splitImg(imgP2,1,4)
-            boxes2=[]
-            for image in kkk:
-                h,w=image.shape[:2]; mid=w//2
-                boxes2.append(image[0:h,0:mid-1])
-                boxes2.append(image[0:h,mid:w])
-            ans2=sp25.splitAnsPart2(boxes2,4,2)
-            myIndex_2=[]
-            for x in range(8):
-                pix=sp25.countPixelPartRows(ans2[x],4,2)
-                myIndex_2.append(sp25.countIndex(pix,4))
-            # Part 3: 6 cau dien so
-            p3_x1=int(ptC3[0][0])+10; p3_y1=int(ptC3[0][1])+85
-            p3_x2=int(ptC3[3][0])+9;  p3_y2=int(ptC3[3][1])-14
-            imgP3=imgThresh[p3_y1:p3_y2,p3_x1:p3_x2]
-            boxes3=sp25.splitImgPart3(imgP3,1,6)
-            ans3=sp25.splitAnsPart3(boxes3,12,4)
-            myIndex_3=[]
-            for x in range(6):
-                pix=sp25.countPixelPartCol(ans3[x],12,4)
-                myIndex_3.append(sp25.countIndex(pix,4))
-            my_index=(myIndex_1,myIndex_2,myIndex_3)
-        except Exception:
-            my_index=None
-        return img_graded, score, my_index
+    return img_graded, score, my_index
 
 # ═════════════════════════════════════════════════════════════════════════════
 # EXPORT

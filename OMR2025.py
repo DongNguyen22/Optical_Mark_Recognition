@@ -264,4 +264,4 @@ def Omr_2025(img,ans):
     #cv2.imshow("box6",boxes_2_clone[6])
     #cv2.imshow("box7",boxes_2_clone[7])
     print(score_2)
-    return img,score
+    return img,score, (myIndex_1, myIndex_2, myIndex_3)
