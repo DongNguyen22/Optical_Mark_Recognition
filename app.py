@@ -1,6 +1,3 @@
-# ╔══════════════════════════════════════════════════════════════════════╗
-# ║      HỆ THỐNG CHẤM THI TRẮC NGHIỆM  –  app.py  v4 (final)        ║
-# ╚══════════════════════════════════════════════════════════════════════╝
 import sys, os, io, traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,7 +20,7 @@ try:
 except ImportError:
     PDF_OK = False
 
-# ── OMR modules ──────────────────────────────────────────────────────────────
+# OMR modules
 try:
     from OMR2020 import Omr_2020
     from OMR2025 import Omr_2025
@@ -33,19 +30,15 @@ try:
 except Exception as _e:
     OMR_OK = False; _omr_err = str(_e)
 
-# ═════════════════════════════════════════════════════════════════════════════
 st.set_page_config(page_title="OMR – Chấm Thi", page_icon="📝",
                    layout="wide", initial_sidebar_state="expanded")
 
-# ═════════════════════════════════════════════════════════════════════════════
 # CSS
-# ═════════════════════════════════════════════════════════════════════════════
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-/* Streamlit 1.58: chỉ target các class nội dung, không dùng wildcard element selector
-   vì nó khiến Streamlit render lại label widget → chữ bị chồng */
 .stMarkdown, .stText, .element-container p,
 .stButton > button, .stSelectbox label,
 .stRadio label, .stCheckbox label,
@@ -60,12 +53,12 @@ st.markdown("""
     padding-top: .8rem; padding-bottom: 2rem; max-width: 1440px;
 }
 
-/* ── sidebar: chỉ đổi bg, KHÔNG override màu chữ wildcard ── */
+/* ── sidebar ── */
 [data-testid="stSidebar"] > div:first-child {
     background: #111827 !important;
     border-right: 1px solid #1e2d3f;
 }
-/* ẩn tooltip keyboard_... khi hover vào widget sidebar */
+
 [data-testid="stSidebar"] [data-testid="stTooltipIcon"] { display: none !important; }
 
 /* ── tabs ── */
@@ -185,9 +178,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ═════════════════════════════════════════════════════════════════════════════
-# CONSTANTS
-# ═════════════════════════════════════════════════════════════════════════════
 LOAI_PHIEU = {
     "2020 – 120 câu":         "2020",
     "2025 – 3 phần (40+8+6)": "2025",
@@ -196,24 +186,19 @@ LOAI_PHIEU = {
 MP_CHR = {0:"A", 1:"B", 2:"C", 3:"D"}
 MP_INT = {"A":0, "B":1, "C":2, "D":3}
 
-# ═════════════════════════════════════════════════════════════════════════════
 # PARSER – ĐÁP ÁN EXCEL
-# ═════════════════════════════════════════════════════════════════════════════
+
 def _blank(v) -> bool:
     return str(v).strip().lower() in ("", "nan", "none", "n/a", "na")
 
 def _is_header_row(raw_ans: list) -> bool:
-    """Trả về True nếu đây là hàng header (toàn chữ không phải A/B/C/D)."""
     valid = [v for v in raw_ans if v.strip()]
     if not valid:
         return True
     return all(v not in MP_INT for v in valid)
 
 def parse_excel_2020(df: pd.DataFrame) -> dict:
-    """
-    Cột 0 = mã đề, cột 1..N = đáp án A/B/C/D.
-    Tự bỏ qua hàng tiêu đề lọt vào data.
-    """
+
     result = {}
     cols   = list(df.columns)
     id_col, ans_cols = cols[0], cols[1:]
@@ -222,7 +207,7 @@ def parse_excel_2020(df: pd.DataFrame) -> dict:
         if _blank(ma):
             continue
         raw = [str(row[c]).strip().upper() for c in ans_cols]
-        if _is_header_row(raw):          # bỏ hàng header lọt vào
+        if _is_header_row(raw):          
             continue
         ans = [MP_INT.get(v, 0) for v in raw]
         if ans:
@@ -328,9 +313,8 @@ def load_ans_excel(file, loai: str) -> dict:
         result.update(parse_excel_2020(df))
     return result
 
-# ═════════════════════════════════════════════════════════════════════════════
 # PARSER – DANH SÁCH SV
-# ═════════════════════════════════════════════════════════════════════════════
+
 def load_sv_excel(file) -> pd.DataFrame:
     try:
         df = pd.read_excel(file, dtype=str)
@@ -349,9 +333,8 @@ def guess_id_col(df: pd.DataFrame) -> str:
             return col
     return df.columns[0]
 
-# ═════════════════════════════════════════════════════════════════════════════
 # OMR WRAPPERS
-# ═════════════════════════════════════════════════════════════════════════════
+
 def img_bytes_to_np(data: bytes) -> np.ndarray:
     return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
 
@@ -359,7 +342,6 @@ def np_to_pil(img: np.ndarray) -> Image.Image:
     return Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
 def run_mdd(img_np, loai):
-    """→ (img_with_mdd_overlay, sbd_str, made_str)"""
     if not OMR_OK:
         return img_np.copy(), "xxxxxxxx", "000"
     if loai == "2020": return readMDD_2020(img_np)
@@ -400,9 +382,8 @@ def run_omr(img_np, loai, ans):
 
     return img_graded, score, my_index
 
-# ═════════════════════════════════════════════════════════════════════════════
 # EXPORT
-# ═════════════════════════════════════════════════════════════════════════════
+
 def _border():
     s = Side(style="thin", color="BDD7EE")
     return Border(left=s, right=s, top=s, bottom=s)
@@ -520,7 +501,7 @@ def build_pdf_result(sv_df, results, loai_label) -> bytes:
                            textColor=colors.HexColor("#64748b"), alignment=1, spaceAfter=10)
     N    = ParagraphStyle("N", parent=stys["Normal"], fontSize=8.5, leading=11)
     # ------------------ Đăng ký font tiếng Việt ------------------
-    font_path = "NotoSans-Regular.ttf"   # đặt đúng tên file font của bạn
+    font_path = "NotoSans-Regular.ttf"   
     if os.path.exists(font_path):
         pdfmetrics.registerFont(TTFont('VietnameseFont', font_path))
         pdfmetrics.registerFontFamily('VietnameseFont', normal='VietnameseFont')
@@ -633,19 +614,6 @@ def score_chip(s) -> str:
     return f'<span class="chip {cls}">{s:.2f}</span>'
 
 def render_ans_2020(ans_key: list, my_index):
-    """
-    Hiển thị từng câu dạng:
-        <số câu>
-        <HS>/<ĐA>
-
-    Màu:
-        xanh lá  — đúng        (HS == ĐA)
-        đỏ       — sai         (HS ≠ ĐA, HS không phải -1/-2)
-        vàng     — bỏ trống    (HS == -1)
-        tím      — tô nhiều    (HS == -2)
-
-    Nếu my_index=None (chưa tính được): chỉ hiển thị đáp án chuẩn, không phân loại.
-    """
     n = len(ans_key)
     items = ""
     for i in range(n):
@@ -684,19 +652,6 @@ def render_ans_2020(ans_key: list, my_index):
     st.markdown(f'<div class="ans-row">{items}</div>', unsafe_allow_html=True)
 
 def render_ans_2025(ans_key: list, my_index):
-    """
-    Hiển thị đáp án 3 phần theo format HS/ĐA — giống render_ans_2020.
-
-    ans_key = [p1, p2, p3]
-      p1: list 40 int (0-3)
-      p2: list 8 x list 4 int (0=Đúng, 1=Sai)
-      p3: list 6 str (chuỗi ký tự '-,0-9')
-
-    my_index = (myIndex_1, myIndex_2, myIndex_3) hoặc None
-      myIndex_1: list 40 int (0-3, -1, -2)
-      myIndex_2: list 8 x list 4 int (0-3, -1, -2)  — mỗi ý a/b/c/d
-      myIndex_3: list 6 x list int — index ký tự theo char_to_index
-    """
     # Mapping index → ký tự hiển thị cho Part 3
     # char_to_index: '-'→0, ','→1, '0'→2, '1'→3, ..., '9'→11
     IDX_TO_CHAR = {0:'-', 1:',', 2:'0', 3:'1', 4:'2', 5:'3',
@@ -839,15 +794,10 @@ def render_ans_2025(ans_key: list, my_index):
             unsafe_allow_html=True
         )
 
-# ─────────────────────────────────────────────────────────────────────────────
 # HELPER – chấm 1 bài (pure function, không dùng st.*)
 # Đặt ở TOP LEVEL của file (ngoài mọi hàm / block with)
-# ─────────────────────────────────────────────────────────────────────────────
+
 def _grade_one(task: dict) -> dict:
-    """
-    Nhận vào dict chứa toàn bộ dữ liệu cần thiết.
-    Trả về dict kết quả — KHÔNG đụng st.* để thread-safe.
-    """
     fname     = task["fname"]
     img_bytes = task["img_bytes"]
     loai = task["loai"]
@@ -894,9 +844,8 @@ def _grade_one(task: dict) -> dict:
             "error": f"{ex}\n{traceback.format_exc()[-400:]}",
         }
 
-# ═════════════════════════════════════════════════════════════════════════════
 # SESSION STATE
-# ═════════════════════════════════════════════════════════════════════════════
+
 _defaults = {
     "loai":        "2020",
     "dap_an":      {},          # {ma_de: ans}
@@ -910,20 +859,10 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ═════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
-# ═════════════════════════════════════════════════════════════════════════════
-with st.sidebar:
-    # Dùng HTML thay vì st.markdown("### ...") để tránh Streamlit 1.58
-    # tự thêm keyboard shortcut tooltip vào heading widget
-    # st.markdown(
-    #     '<p style="font-size:1rem;font-weight:700;margin:0 0 .5rem;'
-    #     'color:#e2e8f0;letter-spacing:-.2px">📂 Cấu hình</p>',
-    #     unsafe_allow_html=True
-    # )
-    # st.divider()
 
-    # ── Loại phiếu ───────────────────────────────────────────────────────────
+with st.sidebar:
+    # ── Loại phiếu ──
     st.markdown('<p style="font-size:.82rem;font-weight:600;color:#cbd5e1;margin:.2rem 0 .3rem">Loại phiếu</p>', unsafe_allow_html=True)
     loai_label = st.radio(
         "loai_phieu_radio", list(LOAI_PHIEU.keys()),
@@ -941,7 +880,7 @@ with st.sidebar:
 
     st.divider()
 
-    # ── File đáp án ───────────────────────────────────────────────────────────
+    # ── File đáp án ───
     st.markdown('<p style="font-size:.82rem;font-weight:600;color:#cbd5e1;margin:.2rem 0 .3rem">File đáp án (.xlsx)</p>', unsafe_allow_html=True)
     with st.expander("📋 Hướng dẫn format"):
         if loai == "2025":
@@ -976,7 +915,7 @@ Cột B → = 120 đáp án A/B/C/D
 
     st.divider()
 
-    # ── Danh sách SV ─────────────────────────────────────────────────────────
+    # ── Danh sách SV ──
     st.markdown('<p style="font-size:.82rem;font-weight:600;color:#cbd5e1;margin:.2rem 0 .3rem">Danh sách sinh viên (.xlsx)</p>', unsafe_allow_html=True)
     sv_file = st.file_uploader("Chọn file danh sách", type=["xlsx","xls"], key="sv_up")
     if sv_file:
@@ -1001,9 +940,7 @@ Cột B → = 120 đáp án A/B/C/D
 
     st.divider()
 
-    # ── Status ────────────────────────────────────────────────────────────────
-    # st.markdown(f"**OMR:** {'✅ Sẵn sàng' if OMR_OK else '❌ ' + _omr_err[:60]}")
-    # st.markdown(f"**PDF:** {'✅' if PDF_OK else '⚠ pip install reportlab'}")
+    # ── Status ──
     if st.session_state.results:
         st.markdown(f"**Đã chấm:** {len(st.session_state.results)} bài")
         if st.button("🗑 Xóa kết quả", use_container_width=True):
@@ -1012,9 +949,8 @@ Cột B → = 120 đáp án A/B/C/D
             st.session_state.detail_idx = 0
             st.rerun()
 
-# ═════════════════════════════════════════════════════════════════════════════
 # MAIN HEADER
-# ═════════════════════════════════════════════════════════════════════════════
+
 st.markdown('<div class="page-title">Hệ Thống Chấm Thi Trắc Nghiệm</div>',
             unsafe_allow_html=True)
 sv_count = len(st.session_state.sv_df) if st.session_state.sv_df is not None else 0
@@ -1030,12 +966,8 @@ tab_up, tab_res, tab_det, tab_exp = st.tabs(
     ["📤 Tải & Chấm", "📊 Kết quả", "🔍 Chi tiết bài", "📥 Xuất file"]
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 – TẢI & CHẤM
-# ─────────────────────────────────────────────────────────────────────────────
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 1 – TẢI & CHẤM  (thay thế toàn bộ block  with tab_up:)
-# ─────────────────────────────────────────────────────────────────────────────
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import threading
@@ -1053,7 +985,7 @@ with tab_up:
     )
 
     if img_files:
-        # ── Hiển thị thời gian lần chấm trước (còn sau rerun) ────────────
+        # ── Hiển thị thời gian lần chấm trước (còn sau rerun) ──
         if st.session_state.get("_last_elapsed"):
             t  = st.session_state["_last_elapsed"]
             n  = st.session_state["_last_count"]
@@ -1075,7 +1007,7 @@ with tab_up:
                 unsafe_allow_html=True
             )
 
-        # ── Tuỳ chọn số luồng ────────────────────────────────────────────────
+        # ── Tuỳ chọn số luồng ──
         max_w = st.select_slider(
             "Thông số nhân của CPU",
             options=[1, 2, 4, 6, 8],
@@ -1109,7 +1041,7 @@ with tab_up:
             id_col    = st.session_state.get("_id_col", "")
             sv_df     = st.session_state.sv_df
 
-            # ── Pool song song ────────────────────────────────────────────────'
+            # ── Pool song song ──
             t_start = time.perf_counter()
             with ThreadPoolExecutor(max_workers=max_w) as pool:
                 future_map = [pool.submit(_grade_one, t) for t in tasks]
@@ -1181,7 +1113,7 @@ with tab_up:
                 )
             st.rerun()
 
-        # ── Thumbnails ────────────────────────────────────────────────────────
+        # ── Thumbnails ──
         st.markdown("---")
         st.markdown("**Xem trước ảnh đã chọn:**")
         tcols = st.columns(min(len(img_files), 5))
@@ -1192,9 +1124,8 @@ with tab_up:
                 st.image(Image.open(f),
                          caption=("✅ " if done else "🔲 ") + f.name[:20],
                          use_container_width=True)
-# ─────────────────────────────────────────────────────────────────────────────
 # TAB 2 – KẾT QUẢ
-# ─────────────────────────────────────────────────────────────────────────────
+
 with tab_res:
     results = st.session_state.results
     if not results:
@@ -1270,9 +1201,8 @@ with tab_res:
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TAB 3 – CHI TIẾT BÀI
-# ─────────────────────────────────────────────────────────────────────────────
+
 with tab_det:
     results = st.session_state.results
     if not results:
@@ -1304,13 +1234,6 @@ with tab_det:
         )
         st.session_state.detail_idx = sel
 
-        # Chỉ có nút "Trước", không có nút "Sau"
-        # nv, _ = st.columns([1, 8])
-        # with nv:
-        #     if sel > 0 and st.button("◀ Trước"):
-        #         st.session_state.detail_idx = sel - 1
-        #         st.rerun()
-
         st.markdown("---")
         rec     = results[sel]
         fname   = rec["_filename"]
@@ -1323,7 +1246,7 @@ with tab_det:
 
         col_img, col_info = st.columns([11, 10])
 
-        # ── Ảnh đã chấm ───────────────────────────────────────────────────
+        # ── Ảnh đã chấm ──
         with col_img:
             st.markdown('<div class="card"><div class="card-title">Ảnh bài đã chấm'
                         ' (SBD & mã đề được ghi trên ảnh)</div>',
@@ -1344,7 +1267,7 @@ with tab_det:
                             unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # ── Thông tin + đáp án ────────────────────────────────────────────
+        # ── Thông tin + đáp án ──
         with col_info:
             # Thông tin SV
             st.markdown('<div class="card"><div class="card-title">Thông tin</div>',
@@ -1394,9 +1317,8 @@ with tab_det:
                     render_ans_2025(ans_key, my_idx)
                     st.markdown("</div>", unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TAB 4 – XUẤT FILE
-# ─────────────────────────────────────────────────────────────────────────────
+
 with tab_exp:
     results = st.session_state.results
     sv_df   = (st.session_state.sv_df

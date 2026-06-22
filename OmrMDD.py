@@ -13,8 +13,6 @@ def readMDD_2020(img):
     imgCanny  = cv2.Canny(imgBlur, 50, 150)
     contours, _ = cv2.findContours(imgCanny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Tìm 2 corner marker đặc trưng 2020 (ô vuông ~25×25px)
-    # top-mid ≈ (696, 67)  |  bot-mid ≈ (693, 412)
     top_mid = None
     bot_mid = None
     for cnt in contours:
@@ -34,11 +32,11 @@ def readMDD_2020(img):
     if top_mid and bot_mid:
         cx, cy_top = top_mid
         _,  cy_bot = bot_mid
-        mdd_x1, mdd_x2 = cx + 26,  cx + 140   # 6 cột MDD
-        md_x1,  md_x2  = cx + 170, cx + 226   # 3 cột MD
+        mdd_x1, mdd_x2 = cx + 26,  cx + 140   
+        md_x1,  md_x2  = cx + 170, cx + 226   
         y1, y2 = cy_top + 90, cy_bot - 12
     else:
-        mdd_x1, mdd_x2 = 725, 839   # fallback tọa độ cứng
+        mdd_x1, mdd_x2 = 725, 839  
         md_x1,  md_x2  = 869, 925
         y1, y2 = 142, 417
 
@@ -96,7 +94,7 @@ def readMDD_2025(img):
         md_x2  = int(pts[3][0])
         y2     = int(pts[2][1]) - 10
     else:
-        x1,  mdd_x2 = 665, 807     # fallback tọa độ cứng
+        x1,  mdd_x2 = 665, 807     
         md_x1, md_x2 = 833, 903
         y1, y2 = 190, 420
 
@@ -137,8 +135,6 @@ def readMDD_DGNL(img):
     imgCanny  = cv2.Canny(imgBlur, 50, 150)
     contours, _ = cv2.findContours(imgCanny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
  
-    # Tìm 2 corner marker phía dưới của khối SBD/Mã đề (~27×27px, area 600–800)
-    # bot_left ≈ (630, 449)  |  bot_right ≈ (824, 449)
     bot_left  = None
     bot_right = None
     seen = set()
@@ -163,18 +159,14 @@ def readMDD_DGNL(img):
     if bot_left and bot_right:
         marker = 27
 
-        # SBD (6 cột)
         sbd_x1 = bot_left[0] + marker
-        sbd_x2 = sbd_x1 + 155      # ~ 6 cột
+        sbd_x2 = sbd_x1 + 155      
 
-        # Mã đề (3 cột)
         md_x1 = bot_right[0] + marker
-        md_x2 = md_x1 + 78         # ~ 3 cột
-
+        md_x2 = md_x1 + 78        
         y1 = bot_left[1] - 250
         y2 = bot_left[1]
     else:
-        # fallback
         sbd_x1, sbd_x2 = 657, 796
         md_x1, md_x2 = 836, 904
         y1, y2 = 210, 440
