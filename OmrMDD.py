@@ -34,13 +34,13 @@ def readMDD_2020(img):
     if top_mid and bot_mid:
         cx, cy_top = top_mid
         _,  cy_bot = bot_mid
-        mdd_x1, mdd_x2 = cx + 22,  cx + 128   # 6 cột MDD
-        md_x1,  md_x2  = cx + 151, cx + 206   # 3 cột MD
-        y1, y2 = cy_top + 88, cy_bot - 10
+        mdd_x1, mdd_x2 = cx + 26,  cx + 140   # 6 cột MDD
+        md_x1,  md_x2  = cx + 170, cx + 226   # 3 cột MD
+        y1, y2 = cy_top + 90, cy_bot - 12
     else:
-        mdd_x1, mdd_x2 = 718, 824   # fallback tọa độ cứng
-        md_x1,  md_x2  = 847, 902
-        y1, y2 = 155, 402
+        mdd_x1, mdd_x2 = 725, 839   # fallback tọa độ cứng
+        md_x1,  md_x2  = 869, 925
+        y1, y2 = 142, 417
 
     # Tách vùng ảnh
     imgMDD       = imgThresh[y1:y2, mdd_x1:mdd_x2]
@@ -65,9 +65,9 @@ def readMDD_2020(img):
     examID    = sp20.convertMDD_MD(myIndex_MD)
 
     cv2.putText(img, f"{studentID}", (mdd_x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
     cv2.putText(img, f"{examID}", (md_x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
     return img, studentID, examID
 
@@ -125,7 +125,7 @@ def readMDD_2025(img):
     cv2.putText(img, f"{studentID}", (x1, y1 - 8),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
     cv2.putText(img, f"{examID}", (md_x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
     return img, studentID, examID
 
@@ -175,9 +175,9 @@ def readMDD_DGNL(img):
         y2 = bot_left[1]
     else:
         # fallback
-        sbd_x1, sbd_x2 = 657, 812
-        md_x1, md_x2   = 853, 931
-        y1, y2         = 200, 449
+        sbd_x1, sbd_x2 = 657, 796
+        md_x1, md_x2 = 836, 904
+        y1, y2 = 210, 440
  
     imgSBD       = imgThresh[y1:y2, sbd_x1:sbd_x2]
     imgSBD_clone = img[y1:y2, sbd_x1:sbd_x2].copy()
@@ -199,8 +199,8 @@ def readMDD_DGNL(img):
     examID    = spVACT.convertMDD_MD(myIndex_MD)
  
     cv2.putText(img, f"{studentID}", (sbd_x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
     cv2.putText(img, f"{examID}", (md_x1, y1 - 8),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
  
     return img, studentID, examID

@@ -6,7 +6,7 @@ def takeImageAnswer(img,contours,indexX,indexY):
     ori_y1,ori_y2,ori_y3,ori_y4 = indexY[:4]
     y1,y2,y3,y4 = indexY[:4]
     time,a,b,c,d = 0,0,0,0,0
-    step = 10
+    step = 5
     pointContour = np.zeros((4,2))
     while(a!=1 or b!=1 or c!=1 or d!=1) and time!=10:
         for contour in contours:

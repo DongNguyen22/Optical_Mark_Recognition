@@ -13,18 +13,17 @@ def rectContour(contours):
     rectCont = sorted(rectCont,key= cv2.contourArea,reverse=True)
     return rectCont
 def splitImg(img , rows,cols ):
-    offSetX = 35 if rows == 1 else 20
     boxes = []
     h,w = img.shape[:2]
     piece_width = w // cols
     piece_height = h // rows
     for x in range(cols):
         for y in range(rows):
-            x_start = x*piece_width + (0 if x == 0 else 5)
-            x_end = x_start+piece_width - (0 if x == cols-1 else 10)
+            x_start = x*piece_width 
+            x_end = x_start+piece_width 
             y_start = y*piece_height
             y_end = y_start+piece_height
-            piece = img[y_start:y_end,x_start+offSetX + (5 if x == 0 else 0):x_end]
+            piece = img[y_start:y_end,x_start + 30:x_end]
             boxes.append(piece)
     return boxes
 def restoreImg(img,box,rows,cols):
@@ -35,11 +34,11 @@ def restoreImg(img,box,rows,cols):
     count = 0
     for x in range(cols):
         for y in range(rows):
-            x_start = x*piece_width + (0 if x == 0 else 5)
-            x_end = x_start+piece_width - (0 if x == cols-1 else 10)
+            x_start = x*piece_width 
+            x_end = x_start+piece_width 
             y_start = y*piece_height
             y_end = y_start+piece_height
-            img[y_start:y_end,x_start+offSetX + (5 if x == 0 else 0):x_end] = box[count]
+            img[y_start:y_end,x_start + 30:x_end] = box[count]
             count += 1
     return img
 def splitImgPart3(img , rows,cols ):
@@ -70,9 +69,10 @@ def restoreImg_Part3(img,box,rows,cols):
             img[y_start:y_end,x_start+40:x_end] = box[count]
             count+=1
     return img
-def splitAns(boxes,rows,cols):
+def splitAns(boxes,rows,cols,box_count):
     ans = []
-    for i in boxes:
+    for k in range(box_count):
+        i = boxes[k]
         h,w = i.shape[:2]
         piece_width = w // cols
         piece_height = h // rows
@@ -82,7 +82,7 @@ def splitAns(boxes,rows,cols):
                 x_end = x_start+piece_width
                 y_start = piece_height*y
                 y_end = y_start+piece_height
-                piece = i[y_start:y_end,x_start:x_end]
+                piece = i[y_start:y_end,x_start:x_end - (10 if rows == 10 else 0)]
                 ans.append(piece)
     return ans
 def resizeImg(img,width,height):
@@ -104,8 +104,8 @@ def getPointAnswer_2025(secW,secH,x,y):
     return point
 def showAnswer(box,myIndex,ans,grading,questions,choices):
     h,w = box.shape[:2]
-    sec_w = int(w // choices)
-    sec_h = int(h // questions)
+    sec_w = int(w // choices) - (5 if choices == 4 else 0)
+    sec_h = int(h // (10 if choices == 4 else questions))
     radius = min(sec_w, sec_h) // 3
     for x in range(questions):
         myAns = myIndex[x]
@@ -116,17 +116,15 @@ def showAnswer(box,myIndex,ans,grading,questions,choices):
             cv2.circle(box,correctPoint,radius,(255,0,0),cv2.FILLED,lineType=cv2.LINE_AA)
         else:
             if grading[x] == 1:
-                myColor = (0,255,0)
+                cv2.circle(box,myPoint,radius,(0,255,0),cv2.FILLED,lineType=cv2.LINE_AA)
             else :
-                myColor = (0,0,255)
                 correctAns = ans[x]
                 correctPoint = getPointAnswer_2025(sec_w,sec_h,correctAns,x)
                 if myIndex[x] != -1:
                     cv2.circle(box,correctPoint,radius,(0,255,0),cv2.FILLED,lineType=cv2.LINE_AA)
+                    cv2.circle(box,myPoint,radius,(0,0,255),cv2.FILLED,lineType=cv2.LINE_AA)
                 else :
                     cv2.circle(box,correctPoint,radius,(0,125,255),cv2.FILLED,lineType=cv2.LINE_AA)
-            if myIndex[x] != -1:
-                cv2.circle(box,myPoint,radius,myColor,cv2.FILLED,lineType=cv2.LINE_AA)
     return box
 def countPixelPartCol(ans,rows,cols):
     countR,countC = 0,0
@@ -149,6 +147,8 @@ def countPixelPartRows(ans,rows,cols):
         if countC == cols:
             countR +=1
             countC =0
+        if countR == rows:
+            break
     return pixel
 def splitMDD(img,rows,cols):
     h,w = img.shape[:2]
@@ -198,7 +198,7 @@ def countIndex(pixelValues,questions):
     myIndex_1 =[]
     for i in range(questions):
         arr = pixelValues[i]
-        marked = np.where(arr >= 70)[0]
+        marked = np.where(arr >= 100)[0]
         if len(marked) == 0:
             myIndex_1.append(-1)        
         elif len(marked) == 1:
@@ -246,7 +246,7 @@ def splitAnsPart3(boxes,rows,cols):
 def char_to_index(ch):
     if ch == '-':
         return 0
-    elif ch == ',':
+    elif ch == ',' or ch == ".":
         return 1
     else:
         return int(ch) + 2
@@ -273,17 +273,17 @@ def showAnswerPart_3(box,index,ans,questions,choices):
         # tô thiếu
         elif has_ans and not has_index:
             correctPoint = getPointAnswer_2025(sec_w,sec_h,x,ans[x])
-            cv2.circle(box,correctPoint,radius,(0,255,255),cv2.FILLED,lineType=cv2.LINE_AA)
+            cv2.circle(box,correctPoint,radius,(0,125,255),cv2.FILLED,lineType=cv2.LINE_AA)
         # có cả 2
         elif has_index and has_ans:
             # tô nhiều
             if index[x] == -2:
                 correctPoint = getPointAnswer_2025(sec_w,sec_h,x,ans[x])
-                cv2.circle(box,correctPoint,radius,(255,128,0),cv2.FILLED,lineType=cv2.LINE_AA)
+                cv2.circle(box,correctPoint,radius,(255,0,0),cv2.FILLED,lineType=cv2.LINE_AA)
             # bỏ trống
             elif index[x] == -1:
                 correctPoint = getPointAnswer_2025(sec_w,sec_h,x,ans[x])
-                cv2.circle(box,correctPoint,radius,(0,255,255),cv2.FILLED,lineType=cv2.LINE_AA)
+                cv2.circle(box,correctPoint,radius,(0,125,255),cv2.FILLED,lineType=cv2.LINE_AA)
             # đúng
             elif index[x] == ans[x]:
                 myPoint = getPointAnswer_2025(sec_w,sec_h,x,index[x])

@@ -27,10 +27,10 @@ def Omr_2020(img,ans):
     #loc ra contours tu giac area > 50
     contours = sp.rectContour(contours)
     #cv2.drawContours(img, contours, -1, (0,255,0), 2)
-    img,pointContour = si.takeImageAnswer(img,contours,[50,150,900,1000],[380,450,1250,1300])
+    img,pointContour = si.takeImageAnswer(img,contours,[20,150,900,1000],[380,450,1300,1400])
     #print(pointContour)
-    #cv2.namedWindow("contours", cv2.WINDOW_NORMAL)
-    #cv2.imshow("contours",img)
+    #cv2.namedWindow("contours", #.WINDOW_NORMAL)
+    #cv2.imshow("contours",img#)
     pt1 = np.float32([pointContour[0], pointContour[1], pointContour[2], pointContour[3]])
     pt2 = np.float32([[0, 0], [widthImg, 0], [0, heightImg], [widthImg, heightImg]])
     matrix = cv2.getPerspectiveTransform(pt1, pt2)
@@ -38,14 +38,14 @@ def Omr_2020(img,ans):
     #cv2.namedWindow("first", cv2.WINDOW_NORMAL)
     #cv2.imshow('blank', imgWarpColored)
 
-    per_x1,per_x2,per_y1,per_y2 = 8,982,72,1375
+    per_x1,per_x2,per_y1,per_y2 = 8,982,76,1375
     imgPer = imgWarpColored[per_y1:per_y2,per_x1:per_x2]
     #cv2.imshow("first",imgPer)
     imgRevert = imgPer.copy()
     imgCvt = cv2.cvtColor(imgPer, cv2.COLOR_BGR2GRAY)
     imgThresh = cv2.threshold(imgCvt, 135, 255, cv2.THRESH_BINARY_INV)[1]
     boxes = sp.splitImg(imgThresh)
-    #x = 0
+    x = 3
     #cv2.imshow('boxpiece', boxes[x*4])
     #cv2.imshow('boxpiece1', boxes[x*4+1])
     #cv2.imshow('boxpiece2', boxes[x*4+2])
@@ -54,7 +54,7 @@ def Omr_2020(img,ans):
 
     #answer
     ans = sp.splitAns(boxes,5,4)
-    x = 0
+    x = 2
     #cv2.imshow("ans1",ans[x*4])
     #cv2.imshow("ans2",ans[x*4+1])
     #cv2.imshow("ans3",ans[x*4+2])
@@ -64,19 +64,18 @@ def Omr_2020(img,ans):
     countR = 0
     #count pixel
     for image in ans:
-        totalPixels = cv2.countNonZero(image)
-        pixelVals[countR][countC] = totalPixels
-        countC += 1
-        if(countC == choices):
-            countR += 1
-            countC = 0
-    #print(pixelVals)
-    #index
+            totalPixels = cv2.countNonZero(image)
+            pixelVals[countR][countC] = totalPixels
+            countC += 1
+            if(countC == choices):
+                countR += 1
+                countC = 0
+        #print(pixelVals)
+        #index
     myIndex = []
     for x in range(questions):
-
         arr = pixelVals[x]
-        validIndex = np.where(arr > 200)[0]
+        validIndex = np.where(arr > 300)[0]
         if len(validIndex) == 0:
             myIndex.append(-1)
         elif len(validIndex) > 1:
@@ -87,18 +86,25 @@ def Omr_2020(img,ans):
     #grading
     grading = []
     for x in range(0, questions):
-        if( myIndex[x] == finalAns[x] ):
-            grading.append(1)
-        else:
-            grading.append(0)
-    score = 0.2*(sum(grading))
+            if( myIndex[x] == finalAns[x] ):
+                grading.append(1)
+            else:
+                grading.append(0)
+    percent = 0
+    if questions == 40:
+        percent = 0.25
+    elif questions == 50:
+        percent = 0.2
+    else:
+        percent = 10
+    score = percent* sum(grading)
     imgRawRevert = np.zeros_like(imgRevert)
     rawBoxes = sp.splitImg(imgRawRevert)
     for x in range(questions//5):
-        stackAns = finalAns[x*5:x*5+5]
-        stackIndex = myIndex[x*5:x*5+5]
-        stackGrading = grading[x*5:x*5+5]
-        rawBoxes[x] = sp.showAnswer(rawBoxes[x], stackIndex, stackAns, stackGrading, 5, 4)
+            stackAns = finalAns[x*5:x*5+5]
+            stackIndex = myIndex[x*5:x*5+5]
+            stackGrading = grading[x*5:x*5+5]
+            rawBoxes[x] = sp.showAnswer(rawBoxes[x], stackIndex, stackAns, stackGrading, 5, 4)
     x = 2
     #cv2.imshow('boxpiece', rawBoxes[x*4])
     #cv2.imshow('boxpiece1', rawBoxes[x*4+1])
@@ -114,10 +120,10 @@ def Omr_2020(img,ans):
 
     imgInvWarp = cv2.warpPerspective(
         imgRawRevert1,
-        invMatrix,
-        (widthImg, heightImg),
-        flags=cv2.INTER_NEAREST
-    )
+            invMatrix,
+            (widthImg, heightImg),
+            flags=cv2.INTER_NEAREST
+        )
     kernel = np.ones((3,3), np.uint8)
     imgInvWarp = cv2.dilate(imgInvWarp,kernel,iterations=1)
     gray = cv2.cvtColor(imgInvWarp, cv2.COLOR_BGR2GRAY)
@@ -129,4 +135,4 @@ def Omr_2020(img,ans):
     #cv2.imshow('inv', imgInvWarp)
 
     imgFinal = cv2.addWeighted(imgFinal, 1, imgInvWarp, 1, 0)
-    return imgFinal,score
+    return imgFinal,score, myIndex

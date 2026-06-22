@@ -23,7 +23,7 @@ def splitImg(img):
             x_end = x_start+piece_width
             y_start = piece_height*y
             y_end = y_start+piece_height
-            piece = img[y_start + ( 16 if y == 1 else 0):y_end - (14 if y == 0 else 0),x_start+38:x_end-40]
+            piece = img[y_start + (54 if y == 0 else 48):y_end - (14 if y == 0 else 10),x_start+32:x_end-44]
             boxes.append(piece)
     return boxes
 def splitAns(boxes,rows,cols):
@@ -51,9 +51,9 @@ def getPointAnswer(secW,secH,x,y):
     return point
 def showAnswer(box,myIndex,ans,grading,questions,choices):
     h,w = box.shape[:2]
-    sec_w = int(w // choices)
-    sec_h = int(h // questions)
-    radius = min(sec_w, sec_h) // 3
+    sec_w = int(w // 4)
+    sec_h = int(h // 12)
+    radius = min(sec_w, sec_h) // 2
     for x in range(questions):
         myAns = myIndex[x]
         myPoint = getPointAnswer(sec_w,sec_h,myAns,x)
@@ -72,7 +72,7 @@ def showAnswer(box,myIndex,ans,grading,questions,choices):
                     cv2.circle(box,correctPoint,radius,(0,255,0),cv2.FILLED,lineType=cv2.LINE_AA)
                     cv2.circle(box,myPoint,radius,(0,0,255),cv2.FILLED,lineType=cv2.LINE_AA)
                 else :
-                    cv2.circle(box,correctPoint,radius,(255,0,0),cv2.FILLED,lineType=cv2.LINE_AA)
+                    cv2.circle(box,correctPoint,radius,(0,125,255),cv2.FILLED,lineType=cv2.LINE_AA)
     return box
 def restoreImg(img,boxes,stack):
     h,w = img.shape[:2]
@@ -85,7 +85,7 @@ def restoreImg(img,boxes,stack):
             x_end = x_start+piece_width
             y_start = piece_height*y
             y_end = y_start+piece_height
-            img[y_start + ( 16 if y == 1 else 0):y_end - (14 if y == 0 else 0),x_start+38:x_end-40] = boxes[count]
+            img[y_start + (54 if y == 0 else 48):y_end - (14 if y == 0 else 10),x_start+32:x_end-44] = boxes[count]
             count += 1
             if count == stack:
                 break
